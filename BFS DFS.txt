@@ -1,0 +1,91 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <omp.h>
+
+using namespace std;
+
+vector<vector<int>> graph;
+vector<bool> visited;
+
+// Parallel BFS
+void bfs(int start, int n) {
+    queue<int> q;
+
+    visited.assign(n, false);
+    visited[start] = true;
+    q.push(start);
+
+    cout << "BFS Traversal: ";
+
+    while (!q.empty()) {
+        int node = q.front();
+        q.pop();
+
+        cout << node << " ";
+
+        #pragma omp parallel for
+        for (int i = 0; i < graph[node].size(); i++) {
+            int neighbor = graph[node][i];
+
+            if (!visited[neighbor]) {
+                #pragma omp critical
+                {
+                    if (!visited[neighbor]) {
+                        visited[neighbor] = true;
+                        q.push(neighbor);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Parallel DFS
+void dfs(int start, int n) {
+    stack<int> st;
+
+    visited.assign(n, false);
+    st.push(start);
+
+    cout << "\nDFS Traversal: ";
+
+    while (!st.empty()) {
+        int node = st.top();
+        st.pop();
+
+        if (!visited[node]) {
+            visited[node] = true;
+            cout << node << " ";
+
+            #pragma omp parallel for
+            for (int i = 0; i < graph[node].size(); i++) {
+                int neighbor = graph[node][i];
+
+                if (!visited[neighbor]) {
+                    #pragma omp critical
+                    st.push(neighbor);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    int n = 5;
+
+    graph.resize(n);
+
+    // Undirected graph
+    graph[0] = {1, 2};
+    graph[1] = {0, 3, 4};
+    graph[2] = {0};
+    graph[3] = {1};
+    graph[4] = {1};
+
+    bfs(0, n);
+    dfs(0, n);
+
+    return 0;
+}
